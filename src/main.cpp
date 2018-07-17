@@ -1,4 +1,5 @@
 #include "common.h"
+#include "i808x_cpu.h"
 #include "ibm5150.h"
 
 enum class pc_model
@@ -23,8 +24,24 @@ int main(int ac, char** av)
         pc_type = pc_model::ibm5150;
 
         ibm5150 dev;
+        i808x_cpu cpu;
+        cpu.type = i808x_cpu_type::i8088;
+
+        cpu.init();
 
         dev.init();
+
+        cpu.device = &dev;
+
+        cpu.rb_real = ibm5150_rb;
+        cpu.rw_real = ibm5150_rw;
+        cpu.wb_real = ibm5150_wb;
+        cpu.ww_real = ibm5150_ww;
+
+        cpu.iorb_real = ibm5150_iorb;
+        cpu.iorw_real = ibm5150_iorw;
+        cpu.iowb_real = ibm5150_iowb;
+        cpu.ioww_real = ibm5150_ioww;
 
         FILE* fp = fopen("roms/machines/ibmpc/pc102782.bin","rb");
         if(!fp)
@@ -39,11 +56,10 @@ int main(int ac, char** av)
         }
         fclose(fp);
 
-        /*for(int i = 0; i < 500; i++)
+        for(int i = 0; i < 10; i++)
         {
-        }*/
-
-        printf("Opcode:%02x\n", ibm5150_rb(&dev, 0xffff0));
+            cpu.tick();
+        }
 
         dev.exit();
     }

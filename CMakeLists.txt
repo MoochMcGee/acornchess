@@ -12,6 +12,8 @@ endif()
 
 set(SOURCES
 src/common.h
+src/i808x_cpu.cpp
+src/i808x_cpu.h
 src/ibm5150.cpp
 src/ibm5150.h
 src/main.cpp

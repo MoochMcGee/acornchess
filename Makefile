@@ -2,7 +2,8 @@ CXX=g++
 CFLAGS=-std=c++17 -g
 LIBS=
 VPATH=src
-OBJ = ibm5150.o \
+OBJ = i808x_cpu.o \
+ibm5150.o \
 main.o
 
 all: $(OBJ)
