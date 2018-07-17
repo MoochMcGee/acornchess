@@ -75,3 +75,44 @@ void ibm5150_ww(void* dev, u64 addr, u16 data)
         }
     }
 }
+
+u8 ibm5150_iorb(void* dev, u16 addr)
+{
+    ibm5150* device = (ibm5150*) dev;
+    fprintf(device->reg_access_log, "Unknown I/O port access at addr %04x\n", addr);
+    return 0;
+}
+
+u16 ibm5150_iorw(void* dev, u16 addr)
+{
+    ibm5150* device = (ibm5150*) dev;
+    if(addr & 1)
+    {
+        return ibm5150_iorb(dev, addr) | ((u16)ibm5150_iorb(dev, addr + 1) << 8);
+    }
+    else
+    {
+        return 0;
+    }
+    return 0;
+}
+
+void ibm5150_iowb(void* dev, u16 addr, u8 data)
+{
+    ibm5150* device = (ibm5150*) dev;
+    fprintf(device->reg_access_log, "Unknown I/O port access at addr %04x data %08x\n", addr, data);
+}
+
+void ibm5150_ioww(void* dev, u16 addr, u16 data)
+{
+    ibm5150* device = (ibm5150*) dev;
+    if(addr & 1)
+    {
+        ibm5150_iowb(dev, addr, data & 0xff);
+        ibm5150_iowb(dev, addr + 1, data >> 8);
+    }
+    else
+    {
+        return;
+    }
+}
