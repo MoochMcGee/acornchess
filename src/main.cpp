@@ -29,7 +29,7 @@ int main(int ac, char** av)
         FILE* fp = fopen("roms/machines/ibmpc/pc102782.bin","rb");
         if(!fp)
         {
-            printf("unable to open %s, are you sure it exists?\n", "roms/machines/ibmpc/pc102782.bin");
+            printf("unable to open roms/machines/ibmpc/pc102782.bin, are you sure it exists?\n");
             return 3;
         }
         if(fread(dev.bios, 1, 0x2000, fp) != 0x2000)
