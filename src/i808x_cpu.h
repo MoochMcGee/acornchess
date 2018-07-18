@@ -9,6 +9,11 @@ enum class i808x_cpu_type
 
 struct i808x_cpu
 {
+    enum
+    {
+        ax = 0, cx, dx, bx, sp, bp, si, di,
+        es = 0, cs, ss, ds
+    };
     union
     {
         struct
@@ -24,7 +29,7 @@ struct i808x_cpu
         u16 w;
     } r[8];
 
-    u16 cs, ds, es, ss;
+    u16 sr[4];
 
     u16 ip;
 
@@ -67,6 +72,8 @@ struct i808x_cpu
         u16 whole;
     } flags;
 
+    int segment_override; //defaults to -1 for no segment override.
+
     i808x_cpu_type type;
     void* device;
 
@@ -91,6 +98,8 @@ struct i808x_cpu
     void iowb(u16 addr, u8 data);
     void ioww(u16 addr, u16 data);
 
+    u64 get_ea(u8 modrm);
+    u8 get_rm_byte(u8 modrm);
     void tick();
     void run(int insns);
 };

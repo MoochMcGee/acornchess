@@ -53,13 +53,70 @@ void i808x_cpu::ioww(u16 addr, u16 data)
     ioww_real(device, addr, data);
 }
 
+u64 i808x_cpu::get_ea(u8 modrm)
+{
+    u16 seg;
+    u16 off;
+    switch(modrm & 0xc7)
+    {
+        case 0x00:
+        {
+            off = r[bx].w + r[si].w;
+            seg = sr[ds];
+            break;
+        }
+        case 0x01:
+        {
+            off = r[bx].w + r[di].w;
+            seg = sr[ds];
+            break;
+        }
+        case 0x02:
+        {
+            off = r[bp].w + r[si].w;
+            seg = sr[ss];
+            break;
+        }
+        case 0x03:
+        {
+            off = r[bp].w + r[di].w;
+            seg = sr[ss];
+            break;
+        }
+        case 0x04:
+        {
+            off = r[si].w;
+            seg = sr[ds];
+            break;
+        }
+        case 0x05:
+        {
+            off = r[di].w;
+            seg = sr[ds];
+            break;
+        }
+    }
+    if(segment_override >= 0) seg = sr[segment_override];
+    return (seg << 4) + off;
+}
+
+u8 i808x_cpu::get_rm_byte(u8 modrm)
+{
+    if(modrm >= 0xc0)
+    {
+        u8 rm = modrm & 7;
+        return r[rm & 3].b[(rm >> 2) & 1];
+    }
+    else return rb(get_ea(modrm));
+}
+
 void i808x_cpu::tick()
 {
     //TODO
     u8 opcode = rb(cs, ip);
-    printf("Opcode:%02x\nCS:%04x\nIP:%04x\nFLAGS:%04x\n", opcode, cs, ip, flags.whole);
-    printf("DS:%04x\nES:%04x\nSS:%04x\n", ds, es, ss);
-    printf("AX:%04x\nBX:%04x\nCX:%04x\nDX:%04x\nSP:%04x\nBP:%04x\nSI:%04x\nDI:%04x\n", r[0], r[3], r[1], r[2], r[4], r[5], r[6], r[7]);
+    printf("Opcode:%02x\nCS:%04x\nIP:%04x\nFLAGS:%04x\n", opcode, sr[cs], ip, flags.whole);
+    printf("DS:%04x\nES:%04x\nSS:%04x\n", sr[ds], sr[es], sr[ss]);
+    printf("AX:%04x\nBX:%04x\nCX:%04x\nDX:%04x\nSP:%04x\nBP:%04x\nSI:%04x\nDI:%04x\n", r[ax].w, r[bx].w, r[cx].w, r[dx].w, r[sp].w, r[bp].w, r[si].w, r[di].w);
     ip++;
     switch(opcode)
     {
@@ -210,13 +267,13 @@ void i808x_cpu::tick()
         case 0x9e:
         {
             //SAHF
-            flags.whole = (flags.whole & 0xff2a) | (r[0].h & 0xd5);
+            flags.whole = (flags.whole & 0xff2a) | (r[ax].h & 0xd5);
             break;
         }
         case 0x9f:
         {
             //LAHF
-            r[0].h = (r[0].h & 0x2a) | ((u8)flags.whole & 0xd7);
+            r[ax].h = (r[ax].h & 0x2a) | ((u8)flags.whole & 0xd7);
             break;
         }
         case 0xb0:
@@ -224,7 +281,7 @@ void i808x_cpu::tick()
             //MOV AL, imm8
             u8 temp = rb(cs, ip);
             ip++;
-            r[0].l = temp;
+            r[ax].l = temp;
             break;
         }
         case 0xb1:
@@ -232,7 +289,7 @@ void i808x_cpu::tick()
             //MOV CL, imm8
             u8 temp = rb(cs, ip);
             ip++;
-            r[1].l = temp;
+            r[cx].l = temp;
             break;
         }
         case 0xb2:
@@ -240,7 +297,7 @@ void i808x_cpu::tick()
             //MOV DL, imm8
             u8 temp = rb(cs, ip);
             ip++;
-            r[2].l = temp;
+            r[dx].l = temp;
             break;
         }
         case 0xb3:
@@ -248,7 +305,7 @@ void i808x_cpu::tick()
             //MOV BL, imm8
             u8 temp = rb(cs, ip);
             ip++;
-            r[3].l = temp;
+            r[bx].l = temp;
             break;
         }
         case 0xb4:
@@ -256,7 +313,7 @@ void i808x_cpu::tick()
             //MOV AH, imm8
             u8 temp = rb(cs, ip);
             ip++;
-            r[0].h = temp;
+            r[ax].h = temp;
             break;
         }
         case 0xb5:
@@ -264,7 +321,7 @@ void i808x_cpu::tick()
             //MOV CH, imm8
             u8 temp = rb(cs, ip);
             ip++;
-            r[1].h = temp;
+            r[cx].h = temp;
             break;
         }
         case 0xb6:
@@ -272,7 +329,7 @@ void i808x_cpu::tick()
             //MOV DH, imm8
             u8 temp = rb(cs, ip);
             ip++;
-            r[2].h = temp;
+            r[dx].h = temp;
             break;
         }
         case 0xb7:
@@ -280,9 +337,16 @@ void i808x_cpu::tick()
             //MOV BH, imm8
             u8 temp = rb(cs, ip);
             ip++;
-            r[3].h = temp;
+            r[bx].h = temp;
             break;
         }
+        /*case 0xd2:
+        {
+            u8 modrm = rb(cs, ip);
+            ip++;
+            u8 src = get_rm_byte(modrm);
+            break;
+        }*/
         case 0xea:
         {
             //JMP FAR
