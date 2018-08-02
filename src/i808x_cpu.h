@@ -26,6 +26,7 @@ struct i808x_cpu
             u8 l;
 #endif
         };
+        u8 b[2];
         u16 w;
     } r[8];
 
@@ -93,6 +94,10 @@ struct i808x_cpu
     u16 rw(u16 seg, u16 offset);
     void wb(u16 seg, u16 offset, u8 data);
     void ww(u16 seg, u16 offset, u16 data);
+    u8 rb(u64 addr);
+    u16 rw(u64 addr);
+    void wb(u64 addr, u8 data);
+    void ww(u64 addr, u16 data);
     u8 iorb(u16 addr);
     u16 iorw(u16 addr);
     void iowb(u16 addr, u8 data);

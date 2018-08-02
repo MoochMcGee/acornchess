@@ -7,8 +7,8 @@ void i808x_cpu::init()
         r[i].w = 0;
     }
 
-    cs = 0xffff;
-    ds = es = ss = 0;
+    sr[cs] = 0xffff;
+    sr[ds] = sr[es] = sr[ss] = 0;
     ip = 0;
     flags.whole = 0xf002;
 }
@@ -25,12 +25,32 @@ u16 i808x_cpu::rw(u16 seg, u16 offset)
 
 void i808x_cpu::wb(u16 seg, u16 offset, u8 data)
 {
-    wb_real(device, ((u32)seg << 4) + offset, data);
+    wb_real(device, (((u32)seg << 4) + offset) & 0xfffff, data);
 }
 
 void i808x_cpu::ww(u16 seg, u16 offset, u16 data)
 {
-    ww_real(device, ((u32)seg << 4) + offset, data);
+    ww_real(device, (((u32)seg << 4) + offset) & 0xfffff, data);
+}
+
+u8 i808x_cpu::rb(u64 addr)
+{
+    return rb_real(device, addr & 0xfffff);
+}
+
+u16 i808x_cpu::rw(u64 addr)
+{
+    return rw_real(device, addr & 0xfffff);
+}
+
+void i808x_cpu::wb(u64 addr, u8 data)
+{
+    wb_real(device, addr, data);
+}
+
+void i808x_cpu::ww(u64 addr, u16 data)
+{
+    ww_real(device, addr, data);
 }
 
 u8 i808x_cpu::iorb(u16 addr)
@@ -113,7 +133,7 @@ u8 i808x_cpu::get_rm_byte(u8 modrm)
 void i808x_cpu::tick()
 {
     //TODO
-    u8 opcode = rb(cs, ip);
+    u8 opcode = rb(sr[cs], ip);
     printf("Opcode:%02x\nCS:%04x\nIP:%04x\nFLAGS:%04x\n", opcode, sr[cs], ip, flags.whole);
     printf("DS:%04x\nES:%04x\nSS:%04x\n", sr[ds], sr[es], sr[ss]);
     printf("AX:%04x\nBX:%04x\nCX:%04x\nDX:%04x\nSP:%04x\nBP:%04x\nSI:%04x\nDI:%04x\n", r[ax].w, r[bx].w, r[cx].w, r[dx].w, r[sp].w, r[bp].w, r[si].w, r[di].w);
@@ -124,7 +144,7 @@ void i808x_cpu::tick()
         case 0x70:
         {
             //JO NEAR
-            s16 off = (s8)rb(cs, ip);
+            s16 off = (s8)rb(sr[cs], ip);
             ip++;
             if(flags.overflow) ip += off;
             break;
@@ -133,7 +153,7 @@ void i808x_cpu::tick()
         case 0x71:
         {
             //JNO NEAR
-            s16 off = (s8)rb(cs, ip);
+            s16 off = (s8)rb(sr[cs], ip);
             ip++;
             if(!flags.overflow) ip += off;
             break;
@@ -142,7 +162,7 @@ void i808x_cpu::tick()
         case 0x72:
         {
             //JC NEAR
-            s16 off = (s8)rb(cs, ip);
+            s16 off = (s8)rb(sr[cs], ip);
             ip++;
             if(flags.carry) ip += off;
             break;
@@ -151,7 +171,7 @@ void i808x_cpu::tick()
         case 0x73:
         {
             //JNC NEAR
-            s16 off = (s8)rb(cs, ip);
+            s16 off = (s8)rb(sr[cs], ip);
             ip++;
             if(!flags.carry) ip += off;
             break;
@@ -160,7 +180,7 @@ void i808x_cpu::tick()
         case 0x74:
         {
             //JZ NEAR
-            s16 off = (s8)rb(cs, ip);
+            s16 off = (s8)rb(sr[cs], ip);
             ip++;
             if(flags.zero) ip += off;
             break;
@@ -169,7 +189,7 @@ void i808x_cpu::tick()
         case 0x75:
         {
             //JNZ NEAR
-            s16 off = (s8)rb(cs, ip);
+            s16 off = (s8)rb(sr[cs], ip);
             ip++;
             if(!flags.zero) ip += off;
             break;
@@ -178,7 +198,7 @@ void i808x_cpu::tick()
         case 0x76:
         {
             //JCE NEAR
-            s16 off = (s8)rb(cs, ip);
+            s16 off = (s8)rb(sr[cs], ip);
             ip++;
             if(flags.carry || flags.zero) ip += off;
             break;
@@ -187,7 +207,7 @@ void i808x_cpu::tick()
         case 0x77:
         {
             //JNCE NEAR
-            s16 off = (s8)rb(cs, ip);
+            s16 off = (s8)rb(sr[cs], ip);
             ip++;
             if(!(flags.carry || flags.zero)) ip += off;
             break;
@@ -196,7 +216,7 @@ void i808x_cpu::tick()
         case 0x78:
         {
             //JS NEAR
-            s16 off = (s8)rb(cs, ip);
+            s16 off = (s8)rb(sr[cs], ip);
             ip++;
             if(flags.sign) ip += off;
             break;
@@ -205,7 +225,7 @@ void i808x_cpu::tick()
         case 0x79:
         {
             //JNS NEAR
-            s16 off = (s8)rb(cs, ip);
+            s16 off = (s8)rb(sr[cs], ip);
             ip++;
             if(!flags.sign) ip += off;
             break;
@@ -214,7 +234,7 @@ void i808x_cpu::tick()
         case 0x7a:
         {
             //JP NEAR
-            s16 off = (s8)rb(cs, ip);
+            s16 off = (s8)rb(sr[cs], ip);
             ip++;
             if(flags.parity) ip += off;
             break;
@@ -223,7 +243,7 @@ void i808x_cpu::tick()
         case 0x7b:
         {
             //JNP NEAR
-            s16 off = (s8)rb(cs, ip);
+            s16 off = (s8)rb(sr[cs], ip);
             ip++;
             if(!flags.parity) ip += off;
             break;
@@ -232,7 +252,7 @@ void i808x_cpu::tick()
         case 0x7c:
         {
             //JL NEAR
-            s16 off = (s8)rb(cs, ip);
+            s16 off = (s8)rb(sr[cs], ip);
             ip++;
             if((flags.sign != flags.overflow) && !flags.zero) ip += off;
             break;
@@ -241,7 +261,7 @@ void i808x_cpu::tick()
         case 0x7d:
         {
             //JNL NEAR
-            s16 off = (s8)rb(cs, ip);
+            s16 off = (s8)rb(sr[cs], ip);
             ip++;
             if(flags.sign == flags.overflow) ip += off;
             break;
@@ -250,7 +270,7 @@ void i808x_cpu::tick()
         case 0x7e:
         {
             //JLE NEAR
-            s16 off = (s8)rb(cs, ip);
+            s16 off = (s8)rb(sr[cs], ip);
             ip++;
             if((flags.sign != flags.overflow) || flags.zero) ip += off;
             break;
@@ -259,7 +279,7 @@ void i808x_cpu::tick()
         case 0x7f:
         {
             //JNLE NEAR
-            s16 off = (s8)rb(cs, ip);
+            s16 off = (s8)rb(sr[cs], ip);
             ip++;
             if((flags.sign == flags.overflow) && !flags.zero) ip += off;
             break;
@@ -279,7 +299,7 @@ void i808x_cpu::tick()
         case 0xb0:
         {
             //MOV AL, imm8
-            u8 temp = rb(cs, ip);
+            u8 temp = rb(sr[cs], ip);
             ip++;
             r[ax].l = temp;
             break;
@@ -287,7 +307,7 @@ void i808x_cpu::tick()
         case 0xb1:
         {
             //MOV CL, imm8
-            u8 temp = rb(cs, ip);
+            u8 temp = rb(sr[cs], ip);
             ip++;
             r[cx].l = temp;
             break;
@@ -295,7 +315,7 @@ void i808x_cpu::tick()
         case 0xb2:
         {
             //MOV DL, imm8
-            u8 temp = rb(cs, ip);
+            u8 temp = rb(sr[cs], ip);
             ip++;
             r[dx].l = temp;
             break;
@@ -303,7 +323,7 @@ void i808x_cpu::tick()
         case 0xb3:
         {
             //MOV BL, imm8
-            u8 temp = rb(cs, ip);
+            u8 temp = rb(sr[cs], ip);
             ip++;
             r[bx].l = temp;
             break;
@@ -311,7 +331,7 @@ void i808x_cpu::tick()
         case 0xb4:
         {
             //MOV AH, imm8
-            u8 temp = rb(cs, ip);
+            u8 temp = rb(sr[cs], ip);
             ip++;
             r[ax].h = temp;
             break;
@@ -319,7 +339,7 @@ void i808x_cpu::tick()
         case 0xb5:
         {
             //MOV CH, imm8
-            u8 temp = rb(cs, ip);
+            u8 temp = rb(sr[cs], ip);
             ip++;
             r[cx].h = temp;
             break;
@@ -327,7 +347,7 @@ void i808x_cpu::tick()
         case 0xb6:
         {
             //MOV DH, imm8
-            u8 temp = rb(cs, ip);
+            u8 temp = rb(sr[cs], ip);
             ip++;
             r[dx].h = temp;
             break;
@@ -335,14 +355,14 @@ void i808x_cpu::tick()
         case 0xb7:
         {
             //MOV BH, imm8
-            u8 temp = rb(cs, ip);
+            u8 temp = rb(sr[cs], ip);
             ip++;
             r[bx].h = temp;
             break;
         }
         /*case 0xd2:
         {
-            u8 modrm = rb(cs, ip);
+            u8 modrm = rb(sr[cs], ip);
             ip++;
             u8 src = get_rm_byte(modrm);
             break;
@@ -354,7 +374,7 @@ void i808x_cpu::tick()
             ip += 2;
             u16 new_cs = rw(cs, ip);
             ip += 2;
-            cs = new_cs;
+            sr[cs] = new_cs;
             ip = new_ip;
             break;
         }
