@@ -45,12 +45,12 @@ u16 i808x_cpu::rw(u64 addr)
 
 void i808x_cpu::wb(u64 addr, u8 data)
 {
-    wb_real(device, addr, data);
+    wb_real(device, addr & 0xfffff, data);
 }
 
 void i808x_cpu::ww(u64 addr, u16 data)
 {
-    ww_real(device, addr, data);
+    ww_real(device, addr & 0xfffff, data);
 }
 
 u8 i808x_cpu::iorb(u16 addr)
