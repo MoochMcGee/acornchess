@@ -370,9 +370,9 @@ void i808x_cpu::tick()
         case 0xea:
         {
             //JMP FAR
-            u16 new_ip = rw(cs, ip);
+            u16 new_ip = rw(sr[cs], ip);
             ip += 2;
-            u16 new_cs = rw(cs, ip);
+            u16 new_cs = rw(sr[cs], ip);
             ip += 2;
             sr[cs] = new_cs;
             ip = new_ip;
